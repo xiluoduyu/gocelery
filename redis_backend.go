@@ -7,13 +7,17 @@ package gocelery
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/gomodule/redigo/redis"
 )
 
+const defaultTTL = time.Hour * 24
+
 // RedisCeleryBackend is celery backend for redis
 type RedisCeleryBackend struct {
 	*redis.Pool
+	TTL time.Duration
 }
 
 // NewRedisBackend creates new RedisCeleryBackend with given redis pool.
@@ -21,6 +25,7 @@ type RedisCeleryBackend struct {
 func NewRedisBackend(conn *redis.Pool) *RedisCeleryBackend {
 	return &RedisCeleryBackend{
 		Pool: conn,
+		TTL:  defaultTTL,
 	}
 }
 
@@ -31,6 +36,7 @@ func NewRedisBackend(conn *redis.Pool) *RedisCeleryBackend {
 func NewRedisCeleryBackend(uri string) *RedisCeleryBackend {
 	return &RedisCeleryBackend{
 		Pool: NewRedisPool(uri),
+		TTL:  defaultTTL,
 	}
 }
 
@@ -61,6 +67,6 @@ func (cb *RedisCeleryBackend) SetResult(taskID string, result *ResultMessage) er
 	}
 	conn := cb.Get()
 	defer conn.Close()
-	_, err = conn.Do("SETEX", fmt.Sprintf("celery-task-meta-%s", taskID), 86400, resBytes)
+	_, err = conn.Do("SETEX", fmt.Sprintf("celery-task-meta-%s", taskID), int(cb.TTL.Seconds()), resBytes)
 	return err
 }
