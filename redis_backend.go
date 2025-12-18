@@ -67,6 +67,11 @@ func (cb *RedisCeleryBackend) SetResult(taskID string, result *ResultMessage) er
 	}
 	conn := cb.Get()
 	defer conn.Close()
-	_, err = conn.Do("SETEX", fmt.Sprintf("celery-task-meta-%s", taskID), int(cb.TTL.Seconds()), resBytes)
+
+	ttl := defaultTTL
+	if cb.TTL > 0 {
+		ttl = cb.TTL
+	}
+	_, err = conn.Do("SETEX", fmt.Sprintf("celery-task-meta-%s", taskID), int(ttl.Seconds()), resBytes)
 	return err
 }
